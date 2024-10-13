@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { nextTick, reactive, toRefs } from "vue";
-import { jsPlumb } from "jsplumb";
+import { jsPlumb as JSPlumb } from "jsplumb";
 
 import {
   jsplumbSetting,
@@ -47,6 +47,7 @@ interface schemaData {
 
 interface State {
   refContainer: any;
+  refNodeForm: any;
   jsPlumb: any;
   ready: boolean;
   loadFinish: boolean;
@@ -58,6 +59,7 @@ interface State {
 export const useRender = (id: string = "container") => {
   const state = reactive<State>({
     refContainer: null,
+    refNodeForm: null,
     jsPlumb: null,
     ready: true,
     loadFinish: false,
@@ -78,7 +80,7 @@ export const useRender = (id: string = "container") => {
   const cloneJsplumbSetting = _.cloneDeep(jsplumbSetting);
   cloneJsplumbSetting.Container = id;
 
-  const { refContainer, ready, loadFinish } = toRefs(state);
+  const { refContainer, ready, jsPlumb, data, activeNode, refNodeForm } = toRefs(state);
 
   const renderNode = () => {
     // 渲染节点
@@ -116,7 +118,7 @@ export const useRender = (id: string = "container") => {
   const jsPlumbRender = () => {
     state.jsPlumb.ready(() => {
       // 导入默认配置
-      state.jsPlumb.importDefaults(setting);
+      state.jsPlumb.importDefaults(cloneJsplumbSetting);
       // 会使整个jsPlumb立即重绘。
       state.jsPlumb.setSuspendDrawing(false, true);
       // 初始化节点
@@ -183,16 +185,40 @@ export const useRender = (id: string = "container") => {
       state.jsPlumb.setContainer(state.refContainer);
     });
   };
+  const loadData = (data: schemaData) => {
+    ready.value = false;
+    state.data = Object.assign({ nodeList: [], lineList: [] }, data);
+    nextTick(() => {
+      ready.value = true;
+      render();
+    });
+  };
   const render = () => {
-    state.jsPlumb = jsPlumb.getInstance();
+    state.jsPlumb = JSPlumb.getInstance();
     nextTick(() => {
       jsPlumbRender();
     });
   };
 
+  /**
+   * 点击节点
+   * @param nodeId
+   */
+  function clickNode(nodeId: string) {
+    state.activeNode.type = "node";
+    state.activeNode.nodeId = nodeId;
+    state.refNodeForm.nodeInit(state.data, nodeId);
+  }
+
   return {
     refContainer,
+    refNodeForm,
     ready,
+    jsPlumb,
+    data,
+    activeNode,
+    loadData,
     render,
+    clickNode,
   };
 };

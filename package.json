@@ -9,9 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@layui/layui-vue": "^2.18.3",
     "jsplumb": "^2.15.6",
     "lodash": "^4.17.21",
-    "vue": "^3.3.4"
+    "vue": "^3.3.4",
+    "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.10",

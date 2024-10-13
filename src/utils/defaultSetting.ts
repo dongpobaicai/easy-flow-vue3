@@ -172,3 +172,39 @@ export const jsplumbTargetOptions = {
   allowLoopback: true,
   dropOptions: { hoverClass: "ef-drop-hover" },
 };
+
+/**
+ * 支持节点类型
+ */
+export const menuList = [
+  {
+    id: "1",
+    name: "开始节点",
+    open: true,
+    children: [
+      {
+        id: "11",
+        type: "task",
+        name: "任务节点",
+        ico: "layui-icon-survey",
+        // 自定义覆盖样式
+        style: {},
+      }
+    ],
+  },
+  {
+    id: "2",
+    name: "结束节点",
+    open: true,
+    children: [
+      {
+        id: "21",
+        type: "end",
+        name: "流程结束",
+        ico: "layui-icon-success",
+        // 自定义覆盖样式
+        style: {},
+      }
+    ],
+  },
+];

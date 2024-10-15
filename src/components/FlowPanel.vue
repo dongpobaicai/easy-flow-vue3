@@ -1,6 +1,20 @@
 <template>
   <div class="flow-panel" v-if="ready">
-    <div class="header">工具栏</div>
+    <div class="header">
+      <span class="link">{{ data.name }}</span>
+      <lay-line direction="vertical"></lay-line>
+      <lay-icon
+        type="layui-icon-delete"
+        :class="{ disabled: !activeNode.type }"
+        @click="deleteElement"
+      ></lay-icon>
+      <lay-line direction="vertical"></lay-line>
+      <lay-icon type="layui-icon-download-circle"></lay-icon>
+      <lay-line direction="vertical"></lay-line>
+      <lay-icon type="layui-icon-addition"></lay-icon>
+      <lay-line direction="vertical"></lay-line>
+      <lay-icon type="layui-icon-subtraction"></lay-icon>
+    </div>
     <div class="flow-panel__layout">
       <div class="left-sider">
         <LeftMenu @addNode="addNode" />
@@ -80,6 +94,7 @@ const {
   clickNode,
   changeNode,
   changeLine,
+  deleteElement,
 } = useRender();
 const { dataA } = useMockData();
 
@@ -114,6 +129,18 @@ loadData(dataA as any);
     line-height: 42px;
     z-index: 3;
     border-bottom: 1px solid #eee;
+    .link {
+      color: var(--global-primary-color);
+    }
+    .layui-icon {
+      color: var(--global-primary-color);
+      padding: 0px 4px;
+      cursor: pointer;
+      &.disabled {
+        cursor: not-allowed;
+        color: #c0c4cc;
+      }
+    }
   }
   &__layout {
     display: flex;

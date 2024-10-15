@@ -50,7 +50,7 @@ export const jsplumbSetting = {
    * fill: 颜色值，如：#12aabb，为空不显示
    * outlineWidth: 外边线宽度
    */
-  EndpointStyle: { fill: "#1879ffa1", outlineWidth: 1 },
+  EndpointStyle: { fill: "#31BDECa1", outlineWidth: 1 },
   // 是否打开jsPlumb的内部日志记录
   LogEnabled: true,
   /**

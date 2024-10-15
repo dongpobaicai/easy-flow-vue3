@@ -81,7 +81,8 @@ export const useRender = (id: string = "container") => {
   const cloneJsplumbSetting = _.cloneDeep(jsplumbSetting);
   cloneJsplumbSetting.Container = id;
 
-  const { refContainer, ready, jsPlumb, data, activeNode, refNodeForm } = toRefs(state);
+  const { refContainer, ready, jsPlumb, data, activeNode, refNodeForm } =
+    toRefs(state);
 
   const renderNode = () => {
     // 渲染节点
@@ -125,65 +126,83 @@ export const useRender = (id: string = "container") => {
       // 初始化节点
       renderNode();
       // 单点击了连接线, https://www.cnblogs.com/ysx215/p/7615677.html
-      state.jsPlumb.bind("click", (conn: { sourceId: any; targetId: any; getLabel: () => any }, originalEvent: any) => {
-        state.activeNode.type = "line";
-        state.activeNode.sourceId = conn.sourceId;
-        state.activeNode.targetId = conn.targetId;
-        unref(refNodeForm).lineInit({
-          from: conn.sourceId,
-          to: conn.targetId,
-          label: conn.getLabel(),
-        });
-      });
-      // // 连线
-      // this.jsPlumb.bind("connection", (evt) => {
-      //   let from = evt.source.id;
-      //   let to = evt.target.id;
-      //   if (this.loadEasyFlowFinish) {
-      //     this.data.lineList.push({ from: from, to: to });
-      //   }
-      // });
+      state.jsPlumb.bind(
+        "click",
+        (
+          conn: { sourceId: any; targetId: any; getLabel: () => any },
+          originalEvent: any
+        ) => {
+          state.activeNode.type = "line";
+          state.activeNode.sourceId = conn.sourceId;
+          state.activeNode.targetId = conn.targetId;
+          unref(refNodeForm).lineInit({
+            from: conn.sourceId,
+            to: conn.targetId,
+            label: conn.getLabel(),
+          });
+        }
+      );
+      // 连线
+      state.jsPlumb.bind(
+        "connection",
+        (evt: { source: { id: any }; target: { id: any } }) => {
+          console.log("进行连线connection");
+          let from = evt.source.id;
+          let to = evt.target.id;
+          if (state.loadFinish) {
+            state.data.lineList.push({ from: from, to: to });
+          }
+        }
+      );
 
-      // // 删除连线回调
-      // this.jsPlumb.bind("connectionDetached", (evt) => {
-      //   this.deleteLine(evt.sourceId, evt.targetId);
-      // });
+      // 删除连线回调
+      state.jsPlumb.bind(
+        "connectionDetached",
+        (evt: { sourceId: any; targetId: any }) => {
+          deleteLine(evt.sourceId, evt.targetId);
+        }
+      );
 
       // 改变线的连接节点
-      state.jsPlumb.bind("connectionMoved", (evt: { originalSourceId: any; originalTargetId: any }) => {
-        console.log("connectionMoved", evt);
-        changeLine({ from: evt.originalSourceId, to: evt.originalTargetId });
+      state.jsPlumb.bind(
+        "connectionMoved",
+        (evt: { originalSourceId: any; originalTargetId: any }) => {
+          console.log("connectionMoved", evt);
+        }
+      );
+
+      // 连线右击
+      state.jsPlumb.bind("contextmenu", (evt: any) => {
+        console.log("contextmenu", evt);
       });
 
-      // // 连线右击
-      // this.jsPlumb.bind("contextmenu", (evt) => {
-      //   console.log("contextmenu", evt);
-      // });
+      // 连线
+      state.jsPlumb.bind(
+        "beforeDrop",
+        (evt: { sourceId: any; targetId: any }) => {
+          let from = evt.sourceId;
+          let to = evt.targetId;
+          if (from === to) {
+            layer.msg("节点不支持连接自己", { icon: 2 });
+            return false;
+          }
+          if (hasLine(from, to)) {
+            layer.msg("该关系已存在,不允许重复创建", { icon: 2 });
+            return false;
+          }
+          if (hashOppositeLine(from, to)) {
+            layer.msg("不支持两个节点之间连线回环", { icon: 2 });
+            return false;
+          }
+          layer.msg("连接成功", { icon: 1 });
+          return true;
+        }
+      );
 
-      // // 连线
-      // this.jsPlumb.bind("beforeDrop", (evt) => {
-      //   let from = evt.sourceId;
-      //   let to = evt.targetId;
-      //   if (from === to) {
-      //     this.$message.error("节点不支持连接自己");
-      //     return false;
-      //   }
-      //   if (this.hasLine(from, to)) {
-      //     this.$message.error("该关系已存在,不允许重复创建");
-      //     return false;
-      //   }
-      //   if (this.hashOppositeLine(from, to)) {
-      //     this.$message.error("不支持两个节点之间连线回环");
-      //     return false;
-      //   }
-      //   this.$message.success("连接成功");
-      //   return true;
-      // });
-
-      // // beforeDetach
-      // this.jsPlumb.bind("beforeDetach", (evt) => {
-      //   console.log("beforeDetach", evt);
-      // });
+      // beforeDetach
+      state.jsPlumb.bind("beforeDetach", (evt: any) => {
+        console.log("beforeDetach", evt);
+      });
       state.jsPlumb.setContainer(state.refContainer);
     });
   };
@@ -320,11 +339,111 @@ export const useRender = (id: string = "container") => {
     } else {
       conn.addClass("flowLabel");
     }
-    state.data.lineList.forEach(function (line) {
+    state.data.lineList.forEach(function (line: {
+      from: any;
+      to: any;
+      label: any;
+    }) {
       if (line.from == from && line.to == to) {
         line.label = label;
       }
     });
+  }
+
+  // 删除线
+  function deleteLine(from: any, to: any) {
+    state.data.lineList = state.data.lineList.filter(function (line: {
+      from: any;
+      to: any;
+    }) {
+      if (line.from == from && line.to == to) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  // 删除激活的元素
+  function deleteElement() {
+    if (state.activeNode.type === "node") {
+      deleteNode(state.activeNode.nodeId);
+    } else if (state.activeNode.type === "line") {
+      layer.confirm("确定删除所点击的线吗?", {
+        title: "提示",
+        btn: [
+          {
+            text: "确定",
+            callback: (id: any) => {
+              var conn = state.jsPlumb.getConnections({
+                source: state.activeNode.sourceId,
+                target: state.activeNode.targetId,
+              })[0];
+              state.jsPlumb.deleteConnection(conn);
+              layer.close(id);
+            },
+          },
+          {
+            text: "取消",
+            callback: (id: any) => {
+              layer.close(id);
+            },
+          },
+        ],
+      });
+    }
+  }
+
+  /**
+   * 删除节点
+   * @param nodeId 被删除节点的ID
+   */
+  function deleteNode(nodeId: string) {
+    layer.confirm("确定要删除节点" + nodeId + "?", {
+      title: "提示",
+      btn: [
+        {
+          text: "确定",
+          callback: (id: any) => {
+            /**
+             * 这里需要进行业务判断，是否可以删除
+             */
+            state.data.nodeList = state.data.nodeList.filter(function (node: {
+              id: string;
+            }) {
+              if (node.id === nodeId) {
+                return false;
+              }
+              return true;
+            });
+            nextTick(() => {
+              state.jsPlumb.removeAllEndpoints(nodeId);
+            });
+            layer.close(id);
+          },
+        },
+        {
+          text: "取消",
+          callback: (id: any) => {
+            layer.close(id);
+          },
+        },
+      ],
+    });
+  }
+
+  function hasLine(from: any, to: any) {
+    for (var i = 0; i < state.data.lineList.length; i++) {
+      var line = state.data.lineList[i];
+      if (line.from === from && line.to === to) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // 是否含有相反的线
+  function hashOppositeLine(from: any, to: any) {
+    return hasLine(to, from);
   }
 
   return {
@@ -340,5 +459,6 @@ export const useRender = (id: string = "container") => {
     clickNode,
     changeNode,
     changeLine,
+    deleteElement,
   };
 };

@@ -104,12 +104,12 @@ function changeNode() {
     cursor: move;
     background-color: #f0f7ff;
     background-color: #f0f7ff;
-    border: 1px dashed #1879ff;
+    border: 1px dashed var(--global-primary-color);
   }
   /*节点左侧的竖线*/
   .node-left {
     width: 4px;
-    background-color: #1879ff;
+    background-color: var(--global-primary-color);
     border-radius: 4px 0 0 4px;
   }
 
@@ -148,6 +148,6 @@ function changeNode() {
 .node-active {
   background-color: #f0f7ff;
   background-color: #f0f7ff;
-  border: 1px solid #1879ff;
+  border: 1px solid var(--global-primary-color);
 }
 </style>

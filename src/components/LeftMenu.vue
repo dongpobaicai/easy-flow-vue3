@@ -98,8 +98,8 @@ if (isFirefox()) {
       &:hover {
         cursor: move;
         background-color: #f0f7ff;
-        border: 1px dashed #1879ff;
-        border-left: 4px solid #1879ff;
+        border: 1px dashed var(--global-primary-color);
+        border-left: 4px solid var(--global-primary-color);
         padding-left: 5px;
       }
     }

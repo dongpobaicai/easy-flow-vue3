@@ -1,6 +1,6 @@
 import _ from "lodash";
-import { nextTick, reactive, toRefs } from "vue";
-import { jsPlumb as JSPlumb } from "jsplumb";
+import { nextTick, reactive, toRefs, unref } from "vue";
+import { layer } from "@layui/layui-vue";
 
 import {
   jsplumbSetting,
@@ -8,6 +8,7 @@ import {
   jsplumbTargetOptions,
   jsplumbConnectOptions,
 } from "../utils/defaultSetting";
+import { getUUID } from "../utils/index";
 
 interface node {
   id: string;
@@ -124,16 +125,16 @@ export const useRender = (id: string = "container") => {
       // 初始化节点
       renderNode();
       // 单点击了连接线, https://www.cnblogs.com/ysx215/p/7615677.html
-      // state.jsPlumb.bind("click", (conn: { sourceId: any; targetId: any; getLabel: () => any; }, originalEvent: any) => {
-      //   this.activeElement.type = "line";
-      //   this.activeElement.sourceId = conn.sourceId;
-      //   this.activeElement.targetId = conn.targetId;
-      //   this.$refs.nodeForm.lineInit({
-      //     from: conn.sourceId,
-      //     to: conn.targetId,
-      //     label: conn.getLabel(),
-      //   });
-      // });
+      state.jsPlumb.bind("click", (conn: { sourceId: any; targetId: any; getLabel: () => any }, originalEvent: any) => {
+        state.activeNode.type = "line";
+        state.activeNode.sourceId = conn.sourceId;
+        state.activeNode.targetId = conn.targetId;
+        unref(refNodeForm).lineInit({
+          from: conn.sourceId,
+          to: conn.targetId,
+          label: conn.getLabel(),
+        });
+      });
       // // 连线
       // this.jsPlumb.bind("connection", (evt) => {
       //   let from = evt.source.id;
@@ -148,10 +149,11 @@ export const useRender = (id: string = "container") => {
       //   this.deleteLine(evt.sourceId, evt.targetId);
       // });
 
-      // // 改变线的连接节点
-      // this.jsPlumb.bind("connectionMoved", (evt) => {
-      //   this.changeLine(evt.originalSourceId, evt.originalTargetId);
-      // });
+      // 改变线的连接节点
+      state.jsPlumb.bind("connectionMoved", (evt: { originalSourceId: any; originalTargetId: any }) => {
+        console.log("connectionMoved", evt);
+        changeLine({ from: evt.originalSourceId, to: evt.originalTargetId });
+      });
 
       // // 连线右击
       // this.jsPlumb.bind("contextmenu", (evt) => {
@@ -194,9 +196,86 @@ export const useRender = (id: string = "container") => {
     });
   };
   const render = () => {
-    state.jsPlumb = JSPlumb.getInstance();
+    state.jsPlumb = (window as any).jsPlumb.getInstance();
     nextTick(() => {
       jsPlumbRender();
+    });
+  };
+
+  /**
+   * 拖拽结束后添加新的节点
+   * @param evt
+   * @param nodeMenu 被添加的节点对象
+   * @param mousePosition 鼠标拖拽结束的坐标
+   */
+  const addNode = (
+    evt: { originalEvent: { clientX: any; clientY: any } },
+    nodeMenu: { name: any; type: any; ico: any },
+    mousePosition: any
+  ) => {
+    var screenX = evt.originalEvent.clientX,
+      screenY = evt.originalEvent.clientY;
+    var containerRect = refContainer.value.getBoundingClientRect();
+    var left = screenX,
+      top = screenY;
+    // 计算是否拖入到容器中
+    if (
+      left < containerRect.x ||
+      left > containerRect.width + containerRect.x ||
+      top < containerRect.y ||
+      containerRect.y > containerRect.y + containerRect.height
+    ) {
+      layer.msg("请把节点拖入到画布中", { icon: 2 });
+      return;
+    }
+    left = left - containerRect.x + refContainer.value.scrollLeft;
+    top = top - containerRect.y + refContainer.value.scrollTop;
+    // 居中
+    left -= 85;
+    top -= 16;
+    var nodeId = getUUID();
+    // 动态生成名字
+    var origName = nodeMenu.name;
+    var nodeName = origName;
+    var index = 1;
+    while (index < 10000) {
+      var repeat = false;
+      for (var i = 0; i < data.value.nodeList.length; i++) {
+        let node = data.value.nodeList[i];
+        if (node.name === nodeName) {
+          nodeName = origName + index;
+          repeat = true;
+        }
+      }
+      if (repeat) {
+        index++;
+        continue;
+      }
+      break;
+    }
+    const node = {
+      id: nodeId,
+      name: nodeName,
+      type: nodeMenu.type,
+      left: left + "px",
+      top: top + "px",
+      ico: nodeMenu.ico,
+      state: "success",
+    };
+    /**
+     * 这里可以进行业务判断、是否能够添加该节点
+     */
+    data.value.nodeList.push(node);
+    nextTick(() => {
+      jsPlumb.value.makeSource(nodeId, jsplumbSourceOptions);
+      jsPlumb.value.makeTarget(nodeId, jsplumbTargetOptions);
+      jsPlumb.value.draggable(nodeId, {
+        containment: "parent",
+        stop: function (el: any) {
+          // 拖拽节点结束后的对调
+          console.log("拖拽结束: ", el);
+        },
+      });
     });
   };
 
@@ -209,6 +288,44 @@ export const useRender = (id: string = "container") => {
     state.activeNode.nodeId = nodeId;
     state.refNodeForm.nodeInit(state.data, nodeId);
   }
+  /**
+   * 改变节点
+   * @param data
+   */
+  function changeNode(data: any) {
+    const { id, ...info } = data;
+    state.data.nodeList.forEach((item: any) => {
+      if (item.id === id) {
+        Object.assign(item, info);
+      }
+    });
+  }
+
+  /**
+   * 改变连线
+   * @param data
+   */
+  function changeLine(data: any) {
+    const { from, to, label } = data;
+    const conn = state.jsPlumb.getConnections({
+      source: from,
+      target: to,
+    })[0];
+    conn.setLabel({
+      label,
+    });
+    if (!label || label === "") {
+      conn.removeClass("flowLabel");
+      conn.addClass("emptyFlowLabel");
+    } else {
+      conn.addClass("flowLabel");
+    }
+    state.data.lineList.forEach(function (line) {
+      if (line.from == from && line.to == to) {
+        line.label = label;
+      }
+    });
+  }
 
   return {
     refContainer,
@@ -219,6 +336,9 @@ export const useRender = (id: string = "container") => {
     activeNode,
     loadData,
     render,
+    addNode,
     clickNode,
+    changeNode,
+    changeLine,
   };
 };

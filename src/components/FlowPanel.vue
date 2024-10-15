@@ -7,25 +7,27 @@
       </div>
       <div id="container" class="content" ref="refContainer" v-flow-drag>
         <template v-for="node in data.nodeList" :key="node.id">
-          <FlowNode :id="node.id" :node="node" :activeElement="activeNode" @clickNode="clickNode"> </FlowNode>
+          <FlowNode
+            :id="node.id"
+            :node="node"
+            :activeElement="activeNode"
+            @clickNode="clickNode"
+            @changeNode="changeNode"
+          >
+          </FlowNode>
         </template>
         <!-- 给画布一个默认的宽度和高度 -->
         <div style="position: absolute; top: 2000px; left: 2000px">&nbsp;</div>
       </div>
       <div class="right-sider">
-        <NodeConfig ref="refNodeForm" />
+        <NodeConfig ref="refNodeForm" @success="configSuccess" />
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import { nextTick } from "vue";
-import { layer } from "@layui/layui-vue";
-
 import { useRender } from "../hooks/useRender";
 import { useMockData } from "../hooks/useMockData";
-import { getUUID } from "../utils/index";
-import { jsplumbSourceOptions, jsplumbTargetOptions } from "../utils/defaultSetting";
 
 import LeftMenu from "./LeftMenu.vue";
 import FlowNode from "./FlowNode.vue";
@@ -66,86 +68,28 @@ const vFlowDrag = {
     };
   },
 };
-const { refContainer, refNodeForm, ready, jsPlumb, data, activeNode, loadData, clickNode } = useRender();
+const {
+  refContainer,
+  refNodeForm,
+  ready,
+  jsPlumb,
+  data,
+  activeNode,
+  loadData,
+  addNode,
+  clickNode,
+  changeNode,
+  changeLine,
+} = useRender();
 const { dataA } = useMockData();
 
-/**
- * 拖拽结束后添加新的节点
- * @param evt
- * @param nodeMenu 被添加的节点对象
- * @param mousePosition 鼠标拖拽结束的坐标
- */
-const addNode = (
-  evt: { originalEvent: { clientX: any; clientY: any } },
-  nodeMenu: { name: any; type: any; ico: any },
-  mousePosition: any
-) => {
-  var screenX = evt.originalEvent.clientX,
-    screenY = evt.originalEvent.clientY;
-  var containerRect = refContainer.value.getBoundingClientRect();
-  var left = screenX,
-    top = screenY;
-  // 计算是否拖入到容器中
-  if (
-    left < containerRect.x ||
-    left > containerRect.width + containerRect.x ||
-    top < containerRect.y ||
-    containerRect.y > containerRect.y + containerRect.height
-  ) {
-    layer.msg("请把节点拖入到画布中", { icon: 2 });
-    return;
+function configSuccess(type: string, data: any) {
+  if (type === "node") {
+    jsPlumb.value.repaint();
+  } else {
+    changeLine(data);
   }
-  left = left - containerRect.x + refContainer.value.scrollLeft;
-  top = top - containerRect.y + refContainer.value.scrollTop;
-  // 居中
-  left -= 85;
-  top -= 16;
-  var nodeId = getUUID();
-  // 动态生成名字
-  var origName = nodeMenu.name;
-  var nodeName = origName;
-  var index = 1;
-  while (index < 10000) {
-    var repeat = false;
-    for (var i = 0; i < data.value.nodeList.length; i++) {
-      let node = data.value.nodeList[i];
-      if (node.name === nodeName) {
-        nodeName = origName + index;
-        repeat = true;
-      }
-    }
-    if (repeat) {
-      index++;
-      continue;
-    }
-    break;
-  }
-  const node = {
-    id: nodeId,
-    name: nodeName,
-    type: nodeMenu.type,
-    left: left + "px",
-    top: top + "px",
-    ico: nodeMenu.ico,
-    state: "success",
-  };
-  /**
-   * 这里可以进行业务判断、是否能够添加该节点
-   */
-  data.value.nodeList.push(node);
-  console.log(data.value.nodeList);
-  nextTick(() => {
-    jsPlumb.value.makeSource(nodeId, jsplumbSourceOptions);
-    jsPlumb.value.makeTarget(nodeId, jsplumbTargetOptions);
-    jsPlumb.value.draggable(nodeId, {
-      containment: "parent",
-      stop: function (el: any) {
-        // 拖拽节点结束后的对调
-        console.log("拖拽结束: ", el);
-      },
-    });
-  });
-};
+}
 
 loadData(dataA as any);
 </script>
@@ -188,6 +132,23 @@ loadData(dataA as any);
       border-left: 1px solid #eee;
       background-color: #fbfbfb;
     }
+  }
+  :deep(.jtk-overlay) {
+    cursor: pointer;
+    color: #4a4a4a;
+    font-size: 12px;
+  }
+  // 连线中的label 样式
+  :deep(.jtk-overlay).flowLabel:not(.aLabel) {
+    padding: 4px 10px;
+    background-color: white;
+    color: #565758 !important;
+    border: 1px solid #e0e3e7;
+    border-radius: 5px;
+  }
+
+  // label 为空的样式
+  :deep(.emptyFlowLabel) {
   }
 }
 </style>

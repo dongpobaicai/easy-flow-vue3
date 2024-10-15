@@ -1,5 +1,5 @@
 <template>
-  <div :style="nodeContainerStyle" :class="nodeContainerClass" @click="clickNode">
+  <div ref="nodeRef" :style="nodeContainerStyle" :class="nodeContainerClass" @click="clickNode" @mouseup="changeNode">
     <!-- 最左侧的那条竖线 -->
     <div class="node-left"></div>
     <!-- 节点类型的图标 -->
@@ -15,13 +15,14 @@
   </div>
 </template>
 <script setup>
-import { computed } from "vue";
+import { computed, ref, unref } from "vue";
 
 const props = defineProps({
   node: Object,
   activeElement: Object,
 });
-const emits = defineEmits(["clickNode"]);
+const emits = defineEmits(["clickNode", "changeNode"]);
+const nodeRef = ref();
 
 // 节点容器样式
 const nodeContainerStyle = computed(() => {
@@ -75,6 +76,18 @@ const rightIcon = computed(() => {
 // 点击节点
 function clickNode() {
   emits("clickNode", props.node.id);
+}
+
+// 鼠标移动后抬起，触发修改节点位置事件
+function changeNode() {
+  if (props.node.left === unref(nodeRef).style.left && props.node.top === unref(nodeRef).style.top) {
+    return true;
+  }
+  emits("changeNode", {
+    id: props.node.id,
+    left: unref(nodeRef).style.left,
+    top: unref(nodeRef).style.top,
+  });
 }
 </script>
 <style lang="less" scoped>

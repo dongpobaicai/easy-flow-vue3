@@ -5,6 +5,7 @@
 </template>
 
 <script setup lang="ts">
+import "./utils/jsplumb.js";
 import FlowPanel from "./components/FlowPanel.vue";
 </script>
 <style scoped></style>

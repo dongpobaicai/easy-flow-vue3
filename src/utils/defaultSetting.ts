@@ -189,7 +189,7 @@ export const menuList = [
         ico: "layui-icon-survey",
         // 自定义覆盖样式
         style: {},
-      }
+      },
     ],
   },
   {
@@ -204,7 +204,26 @@ export const menuList = [
         ico: "layui-icon-success",
         // 自定义覆盖样式
         style: {},
-      }
+      },
     ],
+  },
+];
+
+export const stateOptions = [
+  {
+    label: "成功",
+    value: "success",
+  },
+  {
+    label: "警告",
+    value: "warning",
+  },
+  {
+    label: "错误",
+    value: "error",
+  },
+  {
+    label: "运行中",
+    value: "running",
   },
 ];

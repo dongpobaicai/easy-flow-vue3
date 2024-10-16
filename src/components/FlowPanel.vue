@@ -9,11 +9,23 @@
         @click="deleteElement"
       ></lay-icon>
       <lay-line direction="vertical"></lay-line>
-      <lay-icon type="layui-icon-download-circle"></lay-icon>
+      <lay-icon
+        type="layui-icon-download-circle"
+        @click="downloadData"
+      ></lay-icon>
       <lay-line direction="vertical"></lay-line>
-      <lay-icon type="layui-icon-addition"></lay-icon>
+      <lay-icon type="layui-icon-addition" @click="zoomAdd"></lay-icon>
       <lay-line direction="vertical"></lay-line>
-      <lay-icon type="layui-icon-subtraction"></lay-icon>
+      <lay-icon type="layui-icon-subtraction" @click="zoomSub"></lay-icon>
+      <div style="float: right; margin-right: 5px">
+        <lay-button
+          border="green"
+          size="xs"
+          prefix-icon="layui-icon-form"
+          @click="showData"
+          >流程信息</lay-button
+        >
+      </div>
     </div>
     <div class="flow-panel__layout">
       <div class="left-sider">
@@ -38,8 +50,24 @@
       </div>
     </div>
   </div>
+  <lay-layer
+    v-model="state.visible"
+    title="流程数据信息"
+    :area="['70%', 'auto']"
+  >
+    <div style="padding: 20px">
+      <lay-quote>以下流程信息可以被存储起来，方便下一次流程加载</lay-quote>
+      <Codemirror
+        v-model="state.flowJsonData"
+        :options="options"
+        :style="{ height: '400px' }"
+      ></Codemirror>
+    </div>
+  </lay-layer>
 </template>
 <script setup lang="ts">
+import { unref, reactive, nextTick } from "vue";
+import { Codemirror } from "vue-codemirror";
 import { useRender } from "../hooks/useRender";
 import { useMockData } from "../hooks/useMockData";
 
@@ -47,6 +75,10 @@ import LeftMenu from "./LeftMenu.vue";
 import FlowNode from "./FlowNode.vue";
 import NodeConfig from "./NodeConfig.vue";
 
+const state = reactive({
+  visible: false,
+  flowJsonData: "",
+});
 const vFlowDrag = {
   created: (el: any, binding: any) => {
     if (!binding) {
@@ -82,6 +114,10 @@ const vFlowDrag = {
     };
   },
 };
+const options = {
+  mode: { name: "javascript", json: true },
+  lineNumbers: true,
+};
 const {
   refContainer,
   refNodeForm,
@@ -95,6 +131,9 @@ const {
   changeNode,
   changeLine,
   deleteElement,
+  downloadData,
+  zoomAdd,
+  zoomSub,
 } = useRender();
 const { dataA } = useMockData();
 
@@ -104,6 +143,13 @@ function configSuccess(type: string, data: any) {
   } else {
     changeLine(data);
   }
+}
+
+function showData() {
+  state.visible = true;
+  nextTick(() => {
+    state.flowJsonData = JSON.stringify(unref(data), null, 4).toString();
+  });
 }
 
 loadData(dataA as any);

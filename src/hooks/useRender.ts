@@ -36,9 +36,6 @@ interface activeNode {
   sourceId: string; // 连线开始的节点id
   targetId: string; // 连线结束的节点id
 }
-interface flowSetting {
-  zoom: number; // 画布缩放比例
-}
 
 interface schemaData {
   nodeList: node[];
@@ -54,7 +51,7 @@ interface State {
   loadFinish: boolean;
   data: schemaData;
   activeNode: activeNode;
-  setting: flowSetting;
+  zoom: number; // 画布缩放比例
 }
 
 export const useRender = (id: string = "container") => {
@@ -74,9 +71,7 @@ export const useRender = (id: string = "container") => {
       sourceId: "",
       targetId: "",
     },
-    setting: {
-      zoom: 0.5,
-    },
+    zoom: 1,
   });
   const cloneJsplumbSetting = _.cloneDeep(jsplumbSetting);
   cloneJsplumbSetting.Container = id;
@@ -431,6 +426,52 @@ export const useRender = (id: string = "container") => {
     });
   }
 
+  function downloadData() {
+    layer.confirm("确定要下载该流程数据吗?", {
+      title: "提示",
+      btn: [
+        {
+          text: "确定",
+          callback: (id: any) => {
+            var datastr =
+              "data:text/json;charset=utf-8," +
+              encodeURIComponent(JSON.stringify(state.data, null, "\t"));
+            var downloadAnchorNode = document.createElement("a");
+            downloadAnchorNode.setAttribute("href", datastr);
+            downloadAnchorNode.setAttribute("download", "data.json");
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+            layer.msg("正在下载中,请稍后...", { icon: 1 });
+            layer.close(id);
+          },
+        },
+        {
+          text: "取消",
+          callback: (id: any) => {
+            layer.close(id);
+          },
+        },
+      ],
+    });
+  }
+
+  function zoomAdd() {
+    if (state.zoom >= 1) {
+      return;
+    }
+    state.zoom = state.zoom + 0.1;
+    unref(refContainer).style.transform = `scale(${state.zoom})`;
+    state.jsPlumb.setZoom(state.zoom);
+  }
+  function zoomSub() {
+    if (state.zoom <= 0) {
+      return;
+    }
+    state.zoom = state.zoom - 0.1;
+    unref(refContainer).style.transform = `scale(${state.zoom})`;
+    state.jsPlumb.setZoom(state.zoom);
+  }
+
   function hasLine(from: any, to: any) {
     for (var i = 0; i < state.data.lineList.length; i++) {
       var line = state.data.lineList[i];
@@ -460,5 +501,8 @@ export const useRender = (id: string = "container") => {
     changeNode,
     changeLine,
     deleteElement,
+    downloadData,
+    zoomAdd,
+    zoomSub,
   };
 };

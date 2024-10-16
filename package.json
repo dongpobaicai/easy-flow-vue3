@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "@layui/layui-vue": "^2.18.3",
+    "codemirror": "^6.0.1",
     "lodash": "^4.17.21",
     "vue": "^3.3.4",
+    "vue-codemirror": "^6.1.1",
     "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
